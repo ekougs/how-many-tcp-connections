@@ -10,8 +10,8 @@ go >= 1.14
 ## Echo TCP
 ## Build locally
 Considering that you are located in the echo-tcp-socket directory  
-Server - `go build -o dist/server server.go`  
-Client - `go build -o dist/client client.go`  
+Server - `go build -o dist/server logger.go server.go`  
+Client - `go build -o dist/client logger.go client.go`  
 2 binaries are built and executable
 ```bash
 ./dist/server
@@ -30,8 +30,8 @@ client
 ## Echo web socket
 ## Build locally
 Considering that you are located in the echo-tcp-socket directory  
-Server - `go build -o dist/server server.go`  
-Client - `go build -o dist/client client.go`  
+Server - `go build -o dist/server args.go logger.go server.go`  
+Client - `go build -o dist/client args.go logger.go client.go`  
 2 binaries are built and executable
 ```bash
 ./dist/server

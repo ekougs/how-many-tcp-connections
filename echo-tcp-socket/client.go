@@ -1,35 +1,43 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"log"
 	"net"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 func Ping(proto, addr string, iterationIdx int) {
 	c, err := net.Dial(proto, addr)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err.Error(), zap.Error(err))
 	}
 	defer c.Close()
 
 	msg := []byte("holla!")
 	_, err = c.Write(msg)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err.Error(), zap.Error(err))
 	}
 
 	buf := make([]byte, 1024)
 	_, err = c.Read(buf)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err.Error(), zap.Error(err))
 	}
-	log.Println(iterationIdx+1, string(buf))
+	logger.Debug("Received msg", zap.Int("iteration", iterationIdx+1), zap.String("message", string(bytes.Trim(buf, "\x00"))))
 }
 
 func main() {
+	if loggerErr != nil {
+		log.Fatal("Could not initialize logger.", loggerErr)
+	}
+	defer logger.Sync()
+
 	destinationPortPtr := flag.Int("port", 8888, "The destination port")
 	destinationAddressPtr := flag.String("address", "0.0.0.0", "The destination address")
 	iterationPtr := flag.Int("iteration", 100, "The number of pings to make")
@@ -45,6 +53,5 @@ func main() {
 		time.Sleep(waitTime * time.Millisecond)
 	}
 
-	log.Println(time.Since(start))
-
+	logger.Info("Started", zap.Duration("startTime", time.Since(start)))
 }

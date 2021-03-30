@@ -2,43 +2,38 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build ignore
-
 package main
 
 import (
+	"bytes"
 	"flag"
 	"html/template"
 	"log"
 	"net/http"
-	"unsafe"
 
 	"github.com/gorilla/websocket"
+	"go.uber.org/zap"
 )
-
-var addr = flag.String("addr", "localhost:8080", "http service address")
 
 var upgrader = websocket.Upgrader{} // use default options
 
 func echo(w http.ResponseWriter, r *http.Request) {
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Print("upgrade:", err)
+		logger.Error("upgrade:", zap.Error(err))
 		return
 	}
 	defer c.Close()
 	for {
 		mt, message, err := c.ReadMessage()
-		const infoSize = unsafe.Sizeof(c)
-		log.Println("connection socket size:", infoSize, "bytes.")
 		if err != nil {
-			log.Println("read:", err)
+			logger.Error("read error", zap.Error(err))
 			break
 		}
-		log.Printf("recv: %s", message)
+		logger.Info("received", zap.String("message", string(bytes.Trim(message, "\x00"))))
 		err = c.WriteMessage(mt, message)
 		if err != nil {
-			log.Println("write:", err)
+			logger.Error("write error", zap.Error(err))
 			break
 		}
 	}
@@ -49,11 +44,16 @@ func home(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	if loggerErr != nil {
+		log.Fatal("Could not initialize logger.", loggerErr)
+	}
+	defer logger.Sync()
+
 	flag.Parse()
 	log.SetFlags(0)
 	http.HandleFunc("/echo", echo)
 	http.HandleFunc("/", home)
-	log.Fatal(http.ListenAndServe(*addr, nil))
+	logger.Fatal("Server error", zap.Error(http.ListenAndServe(*addr, nil)))
 }
 
 var homeTemplate = template.Must(template.New("").Parse(`

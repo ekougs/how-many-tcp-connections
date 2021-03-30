@@ -2,11 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build ignore
-
 package main
 
 import (
+	"bytes"
 	"flag"
 	"log"
 	"net/url"
@@ -15,11 +14,15 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"go.uber.org/zap"
 )
 
-var addr = flag.String("addr", "localhost:8080", "http service address")
-
 func main() {
+	if loggerErr != nil {
+		log.Fatal("Could not initialize logger.", loggerErr)
+	}
+	defer logger.Sync()
+
 	flag.Parse()
 	log.SetFlags(0)
 
@@ -27,11 +30,11 @@ func main() {
 	signal.Notify(interrupt, os.Interrupt)
 
 	u := url.URL{Scheme: "ws", Host: *addr, Path: "/echo"}
-	log.Printf("connecting to %s", u.String())
+	logger.Info("connecting", zap.String("url", u.String()))
 
 	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
-		log.Fatal("dial:", err)
+		logger.Fatal("dial", zap.Error(err))
 	}
 	defer c.Close()
 
@@ -42,10 +45,10 @@ func main() {
 		for {
 			_, message, err := c.ReadMessage()
 			if err != nil {
-				log.Println("read:", err)
+				logger.Error("read", zap.Error(err))
 				return
 			}
-			log.Printf("recv: %s", message)
+			logger.Info("received", zap.String("message", string(bytes.Trim(message, "\x00"))))
 		}
 	}()
 
@@ -59,17 +62,17 @@ func main() {
 		case t := <-ticker.C:
 			err := c.WriteMessage(websocket.TextMessage, []byte(t.String()))
 			if err != nil {
-				log.Println("write:", err)
+				logger.Error("write", zap.Error(err))
 				return
 			}
 		case <-interrupt:
-			log.Println("interrupt")
+			logger.Info("interrupt")
 
 			// Cleanly close the connection by sending a close message and then
 			// waiting (with timeout) for the server to close the connection.
 			err := c.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 			if err != nil {
-				log.Println("write close:", err)
+				logger.Error("write close", zap.Error(err))
 				return
 			}
 			select {
