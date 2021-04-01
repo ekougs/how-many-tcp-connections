@@ -27,7 +27,11 @@ func echo(w http.ResponseWriter, r *http.Request) {
 	for {
 		mt, message, err := c.ReadMessage()
 		if err != nil {
-			logger.Error("read error", zap.Error(err))
+			if websocket.IsCloseError(err, websocket.CloseGoingAway, websocket.CloseNoStatusReceived) {
+				logger.Info("closing or already closed connection")
+			} else {
+				logger.Error("read error", zap.Error(err), zap.Int("messageType", mt))
+			}
 			break
 		}
 		logger.Info("received", zap.String("message", string(bytes.Trim(message, "\x00"))))
