@@ -2,7 +2,28 @@
 
 This repo contains resources to help with the experiment published [here](https://example.com).
 
-## Requirements for building
+## Requirements for the load testing
+```
+k6
+```
+Tested with k6==0.26.2
+
+## Launch the load test
+With the default environment settings  
+`k6 run src/load-test-client.js`
+
+Environment settings
+* HOST || '127.0.0.1';
+* PORT || 8080;
+* VUS || 10;
+* RAMP_UP || '5m';
+* RAMP_DOWN || RAMP_UP;
+* DURATION || '10m';
+
+To change a setting, for example HOST  
+`k6 run -e HOST=test.k6.io src/load-test-client.js`
+
+## Requirements for building the Go server and client
 ```
 go >= 1.14
 ```
