@@ -67,3 +67,8 @@ Considering that you are located in the echo-tcp-socket directory
 server
 client
 ```
+
+## Build for a Linux i86 machine
+`GOOS=linux GOARCH=386  go build -o dist/server-linux args.go logger.go server.go`  
+Then to upload  
+`scp -i ~/.ssh/id_rsa dist/server-linux USER_ON_MACHINE@DESTINATION_IP_OR_FQDN:/path/in/destination`
